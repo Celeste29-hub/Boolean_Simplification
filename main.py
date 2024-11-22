@@ -62,6 +62,8 @@ class solve:
                 # Generate truth table
                 table = dict(zip(table, map(int, b_index[::-1])))
                 pdnf = list(compress(table.keys(), table.values()))
+                self.table = table
+                self.pdnf = pdnf
                 
                 # Specific cases
                 if index == atom_indices["1"]:
