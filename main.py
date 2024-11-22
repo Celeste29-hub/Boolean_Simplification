@@ -67,25 +67,25 @@ class solve:
                 
                 # Specific cases
                 if index == atom_indices["1"]:
-                    self.solution = "1"
+                    self.dnf = "1"
                 elif index == 0:
-                    self.solution = "0"
+                    self.dnf = "0"
                 elif index in atom_indices.values():
-                    self.solution = swap_dict(atom_indices)[index]
+                    self.dnf = swap_dict(atom_indices)[index]
                 elif index ^ atom_indices["1"] in atom_indices.values():
-                    self.solution = swap_dict(atom_indices)[index ^ atom_indices["1"]] + "'"
+                    self.dnf = swap_dict(atom_indices)[index ^ atom_indices["1"]] + "'"
                 elif [b_index[0], b_index[-1]] == ["0", "0"] and all([int(_) for _ in b_index[1:-1]]):
                     solution = [f"{''.join([atoms[i], atoms[(i + 1) % len(atoms)]])}'" for i in range(len(atoms))]
                     solution = ["".join(sorted(literals(_))) for _ in solution]
-                    self.solution = " + ".join(sorted(solution))
+                    self.dnf = " + ".join(sorted(solution))
                 elif len(pdnf) == 1:
-                    self.solution = pdnf[0]
+                    self.dnf = pdnf[0]
                 elif b_index.count("0") == 1:
                     solution = dict(zip(table.values(), table.keys()))[0]
                     solution = re.sub(r"(\w)", r"\1'", solution)
                     solution = re.sub("\'\'", "", solution)
                     solution = " + ".join(re.findall("\w'?", solution))
-                    self.solution = solution
+                    self.dnf = solution
                 else:
                     # Searches prime implicants
                     prime_implicants = defaultdict(list)
@@ -119,7 +119,7 @@ class solve:
                         if set(pdnf) == set(temp):
                             break
                     
-                    self.solution = " + ".join(sorted(sorted(dnf), key=lambda x: len(literals(x))))
+                    self.dnf = " + ".join(sorted(sorted(dnf), key=lambda x: len(literals(x))))
             except Exception as e:
                 raise Exception(f"{type(e).__name__}: {e}")
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     while True:
             try:
                 arg = solve(input("solve: "))
-                print(f"F[{', '.join(arg.atoms)}] = {arg.solution}")
+                print(f"F[{', '.join(arg.atoms)}] = {arg.dnf}")
             except Exception as e:
                 print(e)
             finally:
