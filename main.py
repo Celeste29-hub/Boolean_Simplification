@@ -1,5 +1,5 @@
 import re
-from itertools import compress, filterfalse
+from itertools import combinations, compress, filterfalse
 from collections import Counter, defaultdict
 
 #Designed by Celeste Aurore Martin
@@ -12,28 +12,34 @@ class solve:
         def combos(iterables):
             pool = literals(iterables)
             n = len(pool)
-            for i in reversed(range(n)):
-                out_1 = pool[i]
-                yield out_1
-                for j in range(i + 1, n):
-                    out_1 = "".join(pool[i:j])
-                    for k in reversed(range(j, n)):
-                        yield out_1 + pool[k]
+            for i in range(1, n + 1):
+                for _ in combinations(pool, i):
+                    yield "".join(_)
                 
         atoms = sorted(Counter(re.findall("[a-z]", arg)).keys())
         if not atoms:
             raise Exception("None")
         self.atoms = atoms
         
+        atom_indices = defaultdict(int)
+        n = 1
+        for i in range(len(atoms)):
+            j = "1" * (1 << (len(atoms) - 1))
+            k = j[::-(1 << i)]
+            k = k.zfill(len(k) << 1) * (1 << i)
+            atom_indices[atoms[i]] = int(k[::-1], 2)
+            n |= int(k[::-1], 2)
+        atom_indices["1"] = n
+      
         table = []
-        atom_indices = defaultdict(str)
-        for i in range(1 << len(atoms)):
-            binary = bin(i)[2:].zfill(len(atoms))
-            table += ["".join([x + "'" if not int(y) else x for x, y in zip(atoms, binary)])]
-            atom_indices["1"] += "1"
-            for key, value  in zip(atoms, binary):
-                atom_indices[key] += value
-        atom_indices = dict(zip(atom_indices.keys(), map(lambda x: int(x[::-1], 2), atom_indices.values())))
+        n = len(atoms)
+        for i in reversed(range(1 << len(atoms))):
+            binary = bin(i)[2:].zfill(n)
+            term = ""
+            for i in range(n):
+                term += atoms[i] 
+                term += "'" * int(binary[i])
+            table += [term]
         
         #DNF minimization
         replacements = {
