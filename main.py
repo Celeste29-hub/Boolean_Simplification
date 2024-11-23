@@ -23,12 +23,12 @@ class solve:
         
         atom_indices = defaultdict(int)
         n = 1
+        s = "1" * (1 << (len(atoms) - 1))
         for i in range(len(atoms)):
-            j = "1" * (1 << (len(atoms) - 1))
-            k = j[::-(1 << i)]
-            k = k.zfill(len(k) << 1) * (1 << i)
-            atom_indices[atoms[i]] = int(k[::-1], 2)
-            n |= int(k[::-1], 2)
+            j = s[::-(1 << i)]
+            j = j.zfill(len(j) << 1) * (1 << i)
+            atom_indices[atoms[i]] = int(j[::-1], 2)
+            n |= int(j[::-1], 2)
         atom_indices["1"] = n
       
         table = []
