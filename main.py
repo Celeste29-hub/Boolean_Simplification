@@ -1,136 +1,150 @@
+#Designed by Celeste Aurore Martin 
 import re
 from itertools import combinations, filterfalse
-from collections import Counter, defaultdict
 
-#Designed by Celeste Aurore Martin
+#from collections import defaultdict
+#For eductional purposes
+class defaultdict(dict):
+    def __init__(self, data_type) -> "datatype":
+        self.data_type = data_type
+    def __missing__(self, key) -> "datatype()":
+        value = self.data_type()
+        self[key] = value
+        return value
+
 class solve:
     def __init__(self, arg: str) -> str:
         if not isinstance(arg, str):
             raise Exception(f"{isinstance(arg, str) = }")
-        arg = arg.lower()
-        
-        #Define functions
-        literals = lambda x: re.findall("\w'?", x)
-        swap_dict = lambda x: dict(zip(x.values(), x.keys()))
-        
-        def combos(iterables: str) -> 'generator':
-            pool: list[str] = literals(iterables)
-            n: int = len(pool)
-            for i in range(1, n + 1):
-                for _ in combinations(pool, i):
-                    yield "".join(_)
-                
-        def table(string: str) -> 'generator':
-            n: int = len(atoms)
-            for i in reversed(range(1 << len(atoms))):
-                binary: str = bin(i)[2:].zfill(n)
-                term: str = ""
-                for j in range(n):
-                    term += atoms[j] 
-                    term += "'" * int(binary[j])
-                yield (term, int(string[i]))
-                
-        if not (atoms := sorted(Counter(re.findall("[a-z]", arg)).keys())):
+        self.arg = arg.lower()
+        if not (atoms := sorted(set(re.findall("[a-z]", self.arg)))):
             raise Exception("None")
-        self.atoms: list[str] = atoms
+        if re.findall("[^a-z\(\)\+\'\s]", self.arg):
+            raise Exception("Check Argument")
         
+        self.atoms: list[str] = atoms
+        self.index, self.atom_indices = self.parse()
+        self.b_index: str = bin(int(self.index))[2:].zfill(1 << len(self.atoms))
+        self.pdnf: set[str] = set(key for key, value in self.table(self.b_index) if value)
+        if len(self.pdnf) == 1:
+            self.dnf: str = self.pdnf[0]
+        else:
+            self.dnf: str = self.main()
+        
+    #Define functions
+    literals = lambda self, x: re.findall("\w'?", x)
+    swap_dict = lambda self, x: dict(zip(x.values(), x.keys()))
+      
+    #Generates a list of the combinations of a string of items
+    def combos(self, iterables: list) -> "generator":
+        pool: list[str] = self.literals(iterables)
+        n: int = len(pool)
+        for i in range(1, n + 1):
+            for _ in combinations(pool, i):
+                yield "".join(_)
+    
+    #Generates a truth table for the given boolean expression
+    def table(self, index: str) -> iter:
+        n: int = len(self.atoms)
+        for i in reversed(range(1 << len(self.atoms))):
+            binary: str = bin(i)[2:].zfill(n)
+            term: str = ""
+            for j in range(n):
+                term += self.atoms[j] 
+                term += "'" * int(binary[j])
+            yield (term, int(index[i]))
+    
+    #Parses the boolean expression to find the index number of the argument
+    def parse(self) -> int:
+        #Finds index values for the atoms used in the given boolean expression relative to our truth table
         n: int = 1
-        s: str = "1" * (1 << (len(atoms) - 1))
+        s: str = "1" * (1 << (len(self.atoms) - 1))
         atom_indices: dict = {}
-        for i in range(len(atoms)):
+        for i in range(len(self.atoms)):
             j = s[::-(1 << i)]
             j = j.zfill(len(j) << 1) * (1 << i)
-            atom_indices[atoms[i]] = int(j[::-1], 2)
+            atom_indices[self.atoms[i]] = int(j[::-1], 2)
             n |= int(j[::-1], 2)
         atom_indices["1"] = n
         
-        #DNF minimization
         replacements: dict = {
-        r"\s|\'\'": "",
-        r"([a-z'\)])([\(a-z])": r"\1&\2",
-        r"([a-z])": lambda x: str(atom_indices[x.group(1)]),
-        r"([0-9]+)\'": lambda x: str(int(x.group(1)) ^ atom_indices["1"]),
-        r"(\w+)\&(\w+)": lambda x: str(int(x.group(1)) & int(x.group(2))),
-        r"(\w+)\+(\w+)": lambda x: str(int(x.group(1)) | int(x.group(2))),
-        r"\((\w+)\)": r"\1",
+        r"\s|\'\'": "", #Removes white spaces and double quotations
+        r"([a-z'\)])([\(a-z])": r"\1&\2", #ab == a&b
+        r"([a-z])": lambda x: str(atom_indices[x.group(1)]), #Converts atoms to their index values relative to the given truth table
+        r"([0-9]+)\'": lambda x: str(int(x.group(1)) ^ atom_indices["1"]), #Negation operation
+        r"(\w+)\&(\w+)": lambda x: str(int(x.group(1)) & int(x.group(2))), #Conjunction operation
+        r"(\w+)\+(\w+)": lambda x: str(int(x.group(1)) | int(x.group(2))), #Disjunction operation
+        r"\((\w+)\)": r"\1", #Removes parentheses
         }
         
-        index: str = arg
-        if re.findall("[^a-z\(\)\+\'\s]", arg):
-            raise Exception("Check Argument")
-        else:
-            try:
-                # Parses expression
-                while any([re.findall(key, index) for key in replacements.keys()]):
-                    for key, value in replacements.items():
-                        while re.search(key, index):
-                            index = re.sub(key, value, index)
-                index: int = int(index)
-                b_index: str = bin(int(index))[2:].zfill(1 << len(atoms))
+        #Parses expression
+        index: str = self.arg
+        while any([re.findall(key, index) for key in replacements.keys()]):
+            for key, value in replacements.items():
+                while re.search(key, index):
+                    index = re.sub(key, value, index)
+        return int(index), atom_indices
+    
+    def main(self) -> str:
+        try:
+            #Specific cases
+            if self.index == self.atom_indices["1"]:
+                return "1"
+            elif self.index == 0:
+                return "0"
+            elif self.index in self.atom_indices.values():
+                return self.swap_dict(self.atom_indices)[self.index]
+            elif self.index ^ self.atom_indices["1"] in self.atom_indices.values():
+                return self.swap_dict(self.atom_indices)[self.index ^ self.atom_indices["1"]] + "'"
+            elif [self.b_index[0], self.b_index[-1]] == ["0", "0"] and all([int(_) for _ in self.b_index[1:-1]]):
+                solution: iter = (f"{''.join([self.atoms[i], self.atoms[(i + 1) % len(self.atoms)]])}'" for i in range(len(self.atoms)))
+                solution: list[str] = ["".join(sorted(self.literals(_))) for _ in solution]
+                return " + ".join(sorted(solution))
+            elif len(self.pdnf) == 1:
+                return self.pdnf[0]
+            
+            size = lambda x, y: len(y) == 1 << (len(self.atoms) - len(self.literals(x)))
+            intersections  = lambda a, b: len(set(b)) - len(set(b) - set(a))
+            
+            #Find solution
+            def dnf() -> iter:
+                #Searches prime implicants
+                prime_implicants: dict = defaultdict(list)
+                for key in self.pdnf:
+                    for _ in self.combos(key):
+                        prime_implicants[_] += [key]
                 
-                # Generate truth table
-                pdnf: list[str] = list(key for key, value in table(b_index) if value)
-                self.pdnf: str = " + ".join(pdnf)
+                #Analyze literal size in implicants
+                groups: dict = defaultdict(list)
+                for key, value in prime_implicants.items():
+                    if size(key, value):
+                        groups[len(self.literals(key))] += [key]
+                groups = {_: groups[_] for _ in sorted(groups)}
                 
-                # Specific cases
-                if index == atom_indices["1"]:
-                    self.dnf: str = "1"
-                elif index == 0:
-                    self.dnf: str = "0"
-                elif index in atom_indices.values():
-                    self.dnf: str = swap_dict(atom_indices)[index]
-                elif index ^ atom_indices["1"] in atom_indices.values():
-                    self.dnf: str = swap_dict(atom_indices)[index ^ atom_indices["1"]] + "'"
-                elif [b_index[0], b_index[-1]] == ["0", "0"] and all([int(_) for _ in b_index[1:-1]]):
-                    solution: 'generator' = (f"{''.join([atoms[i], atoms[(i + 1) % len(atoms)]])}'" for i in range(len(atoms)))
-                    solution: list[str] = ["".join(sorted(literals(_))) for _ in solution]
-                    self.dnf: str = " + ".join(sorted(solution))
-                elif len(pdnf) == 1:
-                    self.dnf: str = pdnf[0]
-                else:
-                    # Searches prime implicants
-                    prime_implicants: dict = defaultdict(list)
-                    for key in pdnf:
-                        for _ in combos(key):
-                            prime_implicants[_] += [key]
-                    
-                    size = lambda x, y: len(y) < 1 << (len(atoms) - len(literals(x)))
-                    prime_implicants = dict(filterfalse(lambda x: size(x[0], x[1]), prime_implicants.items()))
-                    
-                    groups: dict = defaultdict(list)
-                    for _ in prime_implicants.keys():
-                        groups[len(literals(_))] += [_]
-                    groups = {_: groups[_] for _ in sorted(groups)}
-                    
-                    # Find solution
-                    dnf: list[str] = []
-                    temp: set[str] = set()
-                    for _ in groups.values():
-                        terms: dict = dict(zip(_, map(lambda x: prime_implicants[x], _)))
-                        while terms:
-                            intersections  = lambda a, b: len(set(b)) - len(set(b) - set(a))
-                            pref: str = sorted(terms.items(), key=lambda x: intersections(temp, x[1]))[0][0]
-                            if set(terms[pref]) <= temp:
-                                break
-                            dnf += [pref]
-                            temp.update(terms[pref])
-                            del terms[pref]
-                            if set(pdnf) == temp:
-                                break
-                        if set(pdnf) == temp:
+                #Tabulation Method
+                temp: set[str] = set()
+                for _ in groups.values():
+                    terms: dict = {x: prime_implicants[x] for x in _}
+                    while terms:
+                        pref: str = sorted(terms.items(), key=lambda x: intersections(temp, x[1]))[0][0]
+                        if set(terms[pref]) <= temp:
                             break
-                    
-                    self.dnf: str = " + ".join(sorted(sorted(dnf), key=lambda x: len(literals(x))))
-            except Exception as e:
-                raise Exception(f"{type(e).__name__}: {e}")
+                        yield pref
+                        temp.update(terms[pref])
+                        del terms[pref]
+                        if self.pdnf == temp:
+                            return
+            
+            return " + ".join(sorted(sorted(dnf()), key=lambda x: len(self.literals(x))))
+        except Exception as e:
+            raise Exception(f"{type(e).__name__}: {e}")
 
 if __name__ == "__main__":
     while True:
-            try:
-                arg: str = solve(input("solve: "))
-                print(f"F[{', '.join(arg.atoms)}] = {arg.dnf}")
-            except Exception as e:
-                print(e)
-            finally:
-                input()
- 
+        try:
+            arg: str = solve(input("solve: "))
+            print(f"F[{', '.join(arg.atoms)}] = {arg.dnf}")
+        except Exception as e:
+            print(e)
+        finally:
+            input()
