@@ -36,7 +36,7 @@ class solve:
     swap_dict = lambda self, x: dict(zip(x.values(), x.keys()))
       
     #Generates a list of the combinations of a string of items
-    def combos(self, iterables: list) -> "generator":
+    def combos(self, iterables: list) -> iter:
         pool: list[str] = self.literals(iterables)
         n: int = len(pool)
         for i in range(1, n + 1):
