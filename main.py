@@ -1,16 +1,7 @@
 #Designed by Celeste Aurore Martin 
 import re
 from itertools import combinations, filterfalse
-
-#from collections import defaultdict
-#For eductional purposes
-class defaultdict(dict):
-    def __init__(self, data_type) -> "datatype":
-        self.data_type = data_type
-    def __missing__(self, key) -> "datatype()":
-        value = self.data_type()
-        self[key] = value
-        return value
+from collections import defaultdict
 
 class solve:
     def __init__(self, arg: str) -> str:
@@ -27,7 +18,7 @@ class solve:
         self.b_index: str = bin(int(self.index))[2:].zfill(1 << len(self.atoms))
         self.pdnf: set[str] = set(key for key, value in self.table(self.b_index) if value)
         if len(self.pdnf) == 1:
-            self.dnf: str = self.pdnf[0]
+            self.dnf: str = list(self.pdnf)[0]
         else:
             self.dnf: str = self.main()
         
@@ -107,21 +98,21 @@ class solve:
             intersections  = lambda a, b: len(set(b)) - len(set(b) - set(a))
             
             #Find solution
+            #Searches prime implicants
+            prime_implicants: dict = defaultdict(list)
+            for key in self.pdnf:
+                for _ in self.combos(key):
+                    prime_implicants[_] += [key]
+            
+            #Analyze literal size in implicants
+            groups: dict = defaultdict(list)
+            for key, value in prime_implicants.items():
+                if size(key, value):
+                    groups[len(self.literals(key))] += [key]
+            groups = {_: groups[_] for _ in sorted(groups)}
+            
+            #Tabulation Method
             def dnf() -> iter:
-                #Searches prime implicants
-                prime_implicants: dict = defaultdict(list)
-                for key in self.pdnf:
-                    for _ in self.combos(key):
-                        prime_implicants[_] += [key]
-                
-                #Analyze literal size in implicants
-                groups: dict = defaultdict(list)
-                for key, value in prime_implicants.items():
-                    if size(key, value):
-                        groups[len(self.literals(key))] += [key]
-                groups = {_: groups[_] for _ in sorted(groups)}
-                
-                #Tabulation Method
                 temp: set[str] = set()
                 for _ in groups.values():
                     terms: dict = {x: prime_implicants[x] for x in _}
