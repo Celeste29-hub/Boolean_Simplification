@@ -25,9 +25,11 @@ class solve:
     #Define functions
     literals = lambda self, x: re.findall("\w'?", x)
     swap_dict = lambda self, x: dict(zip(x.values(), x.keys()))
+    size = lambda self, x, y: len(y) == 1 << (len(self.atoms) - len(self.literals(x)))
+    intersections  = lambda self, a, b: len(set(b)) - len(set(b) - set(a))
       
     #Generates a list of the combinations of a string of items
-    def combos(self, iterables: list) -> iter:
+    def combos(self, iterables: str) -> iter:
         pool: list[str] = self.literals(iterables)
         n: int = len(pool)
         for i in range(1, n + 1):
@@ -94,21 +96,20 @@ class solve:
             elif len(self.pdnf) == 1:
                 return self.pdnf[0]
             
-            size = lambda x, y: len(y) == 1 << (len(self.atoms) - len(self.literals(x)))
-            intersections  = lambda a, b: len(set(b)) - len(set(b) - set(a))
-            
             #Find solution
             #Searches prime implicants
             prime_implicants: dict = defaultdict(list)
             for key in self.pdnf:
                 for _ in self.combos(key):
                     prime_implicants[_] += [key]
-            
+             
             #Analyze literal size in implicants
             groups: dict = defaultdict(list)
-            for key, value in prime_implicants.items():
-                if size(key, value):
+            for key, value in list(prime_implicants.items()):
+                if self.size(key, value):
                     groups[len(self.literals(key))] += [key]
+                else:
+                    del prime_implicants[key]
             groups = {_: groups[_] for _ in sorted(groups)}
             
             #Tabulation Method
@@ -117,7 +118,7 @@ class solve:
                 for _ in groups.values():
                     terms: dict = {x: prime_implicants[x] for x in _}
                     while terms:
-                        pref: str = sorted(terms.items(), key=lambda x: intersections(temp, x[1]))[0][0]
+                        pref: str = sorted(terms.items(), key=lambda x: self.intersections(temp, x[1]))[0][0]
                         if set(terms[pref]) <= temp:
                             break
                         yield pref
