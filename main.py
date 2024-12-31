@@ -1,6 +1,6 @@
 #Designed by Celeste Aurore Martin 
 import re
-from itertools import combinations, filterfalse
+from itertools import combinations
 from collections import defaultdict
 
 class solve:
@@ -23,10 +23,9 @@ class solve:
             self.dnf: str = self.main()
         
     #Define functions
-    literals = lambda self, x: re.findall("\w'?", x)
-    swap_dict = lambda self, x: dict(zip(x.values(), x.keys()))
-    size = lambda self, x, y: len(y) == 1 << (len(self.atoms) - len(self.literals(x)))
-    intersections  = lambda self, a, b: len(set(b)) - len(set(b) - set(a))
+    literals: list[str] = lambda self, x: re.findall("\w'?", x)
+    swap_dict: dict = lambda self, x: dict(zip(x.values(), x.keys()))
+    size: bool = lambda self, x, y: len(y) == 1 << (len(self.atoms) - len(self.literals(x)))
       
     #Generates a list of the combinations of a string of items
     def combos(self, iterables: str) -> iter:
@@ -98,27 +97,28 @@ class solve:
             
             #Find solution
             #Searches prime implicants
-            prime_implicants: dict = defaultdict(list)
+            prime_implicants: defaultdict = defaultdict(list)
             for key in self.pdnf:
                 for _ in self.combos(key):
                     prime_implicants[_] += [key]
              
             #Analyze literal size in implicants
-            groups: dict = defaultdict(list)
+            groups: defaultdict = defaultdict(list)
             for key, value in list(prime_implicants.items()):
                 if self.size(key, value):
                     groups[len(self.literals(key))] += [key]
                 else:
                     del prime_implicants[key]
-            groups = {_: groups[_] for _ in sorted(groups)}
+            sorted_groups = (groups[_] for _ in sorted(groups))
             
             #Tabulation Method
             def dnf() -> iter:
                 temp: set[str] = set()
-                for _ in groups.values():
+                for _ in sorted_groups:
                     terms: dict = {x: prime_implicants[x] for x in _}
                     while terms:
-                        pref: str = sorted(terms.items(), key=lambda x: self.intersections(temp, x[1]))[0][0]
+                        intersections = [len(set(x) & temp) for x in terms.values()]
+                        pref = dict(zip(intersections, terms.keys()))[min(intersections)]
                         if set(terms[pref]) <= temp:
                             break
                         yield pref
