@@ -109,7 +109,7 @@ class solve:
                     groups[len(self.literals(key))] += [key]
                 else:
                     del prime_implicants[key]
-            sorted_groups = (groups[_] for _ in sorted(groups))
+            sorted_groups: iter = (groups[_] for _ in sorted(groups))
             
             #Tabulation Method
             def dnf() -> iter:
