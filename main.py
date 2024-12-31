@@ -117,8 +117,8 @@ class solve:
                 for _ in sorted_groups:
                     terms: dict = {x: prime_implicants[x] for x in _}
                     while terms:
-                        intersections = [len(set(x) & temp) for x in terms.values()]
-                        pref = dict(zip(intersections, terms.keys()))[min(intersections)]
+                        intersections: list[int] = [len(set(x) & temp) for x in terms.values()]
+                        pref: str = dict(zip(intersections, terms.keys()))[min(intersections)]
                         if set(terms[pref]) <= temp:
                             break
                         yield pref
