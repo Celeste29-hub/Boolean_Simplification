@@ -1,7 +1,18 @@
 #Designed by Celeste Aurore Martin 
 import re
 from itertools import combinations
-from collections import defaultdict
+
+class defaultdict(dict):
+    def __init__(self, datatype):
+        self.datatype = datatype
+    def __missing__(self, key):
+        value = self.datatype()
+        self[key] = value
+        return value
+    def get(self, key):
+        value = self[key]
+        del self[key]
+        return value
 
 class solve:
     def __init__(self, arg: str) -> str:
@@ -109,13 +120,13 @@ class solve:
                     groups[len(self.literals(key))] += [key]
                 else:
                     del prime_implicants[key]
-            sorted_groups: iter = (groups[_] for _ in sorted(groups))
+            sorted_groups: iter = (groups.get(_) for _ in sorted(groups))
             
             #Tabulation Method
             def dnf() -> iter:
                 temp: set[str] = set()
                 for _ in sorted_groups:
-                    terms: dict = {x: prime_implicants[x] for x in _}
+                    terms: dict = {x: prime_implicants.get(x) for x in _}
                     while terms:
                         intersections: list[int] = [len(set(x) & temp) for x in terms.values()]
                         pref: str = dict(zip(intersections, terms.keys()))[min(intersections)]
@@ -125,6 +136,7 @@ class solve:
                         temp.update(terms[pref])
                         del terms[pref]
                         if self.pdnf == temp:
+                            prime_implicants.clear()
                             return
             
             return " + ".join(sorted(sorted(dnf()), key=lambda x: len(self.literals(x))))
