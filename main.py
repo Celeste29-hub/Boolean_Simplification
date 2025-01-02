@@ -136,7 +136,6 @@ class solve:
                         temp.update(terms[pref])
                         del terms[pref]
                         if self.pdnf == temp:
-                            prime_implicants.clear()
                             return
             
             return " + ".join(sorted(sorted(dnf()), key=lambda x: len(self.literals(x))))
